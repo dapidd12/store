@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan Website - Admin Panel</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+        
+        .danger-zone {
+            border-color: #fca5a5;
+            background: linear-gradient(to right, #fee, #fff);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar (same structure) -->
+    <div class="sidebar fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white">
+        <!-- Copy sidebar from content.html -->
+    </div>
+
+    <div class="md:ml-64">
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="flex items-center justify-between px-6 py-4">
+                <div class="flex items-center">
+                    <button id="toggleSidebar" class="md:hidden mr-4">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <h1 class="text-2xl font-bold text-gray-800">Pengaturan Website</h1>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-6">
+            <!-- Message -->
+            <div id="message" class="mb-6"></div>
+
+            <!-- General Settings -->
+            <div class="bg-white rounded-xl shadow p-6 mb-6">
+                <h2 class="text-lg font-bold mb-6">Pengaturan Umum</h2>
+                
+                <form id="generalSettingsForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Mode Maintenance
+                            </label>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="maintenanceMode" 
+                                       class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                <label for="maintenanceMode" class="ml-2 text-sm text-gray-700">
+                                    Aktifkan Mode Maintenance
+                                </label>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Website tidak dapat diakses publik saat mode maintenance aktif
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Maintenance Message
+                            </label>
+                            <textarea id="maintenanceMessage" rows="3"
+                                      placeholder="Website sedang dalam perbaikan..."
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Analytics ID (Google Analytics)
+                            </label>
+                            <input type="text" id="analyticsId"
+                                   placeholder="G-XXXXXXXXXX"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Facebook Pixel ID
+                            </label>
+                            <input type="text" id="facebookPixelId"
+                                   placeholder="XXXXXXXXXXXXXXX"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Custom CSS
+                        </label>
+                        <textarea id="customCSS" rows="6"
+                                  placeholder="/* Tambahkan custom CSS di sini */"
+                                  class="w-full px-4 py-2 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                        <p class="text-sm text-gray-500 mt-1">
+                            CSS akan ditambahkan ke semua halaman website
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Custom JavaScript (Header)
+                        </label>
+                        <textarea id="customJSHeader" rows="6"
+                                  placeholder="<!-- Tambahkan custom JS di header -->"
+                                  class="w-full px-4 py-2 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Custom JavaScript (Footer)
+                        </label>
+                        <textarea id="customJSFooter" rows="6"
+                                  placeholder="<!-- Tambahkan custom JS di footer -->"
+                                  class="w-full px-4 py-2 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end pt-6 border-t">
+                        <button type="submit" id="saveGeneralBtn"
+                                class="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium">
+                            Simpan Pengaturan Umum
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Email Settings -->
+            <div class="bg-white rounded-xl shadow p-6 mb-6">
+                <h2 class="text-lg font-bold mb-6">Pengaturan Email</h2>
+                
+                <form id="emailSettingsForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Email Administrator
+                            </label>
+                            <input type="email" id="adminEmail"
+                                   placeholder="admin@example.com"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Email Support
+                            </label>
+                            <input type="email" id="supportEmail"
+                                   placeholder="support@example.com"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            SMTP Host
+                        </label>
+                        <input type="text" id="smtpHost"
+                               placeholder="smtp.gmail.com"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                SMTP Port
+                            </label>
+                            <input type="number" id="smtpPort"
+                                   placeholder="587"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                SMTP Username
+                            </label>
+                            <input type="text" id="smtpUsername"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                SMTP Password
+                            </label>
+                            <input type="password" id="smtpPassword"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end pt-6 border-t">
+                        <button type="submit" id="saveEmailBtn"
+                                class="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium">
+                            Simpan Pengaturan Email
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="border-2 danger-zone rounded-xl shadow p-6">
+                <h2 class="text-lg font-bold mb-4 text-red-600">Zona Berbahaya</h2>
+                <p class="text-gray-600 mb-6">
+                    Aksi di bawah ini tidak dapat dibatalkan. Harap berhati-hati.
+                </p>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium text-red-800">Reset Semua Data</h3>
+                            <p class="text-sm text-red-600">
+                                Menghapus semua data produk, testimoni, FAQ, dan pengaturan
+                            </p>
+                        </div>
+                        <button onclick="adminSettings.showResetConfirmation()"
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm">
+                            Reset Data
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 bg-yellow-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium text-yellow-800">Ekspor Database</h3>
+                            <p class="text-sm text-yellow-600">
+                                Download backup semua data dalam format JSON
+                            </p>
+                        </div>
+                        <button onclick="adminSettings.exportData()"
+                                class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium text-sm">
+                            Ekspor Data
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium text-blue-800">Cache Control</h3>
+                            <p class="text-sm text-blue-600">
+                                Bersihkan cache dan refresh data
+                            </p>
+                        </div>
+                        <button onclick="adminSettings.clearCache()"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+                            Clear Cache
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="resetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-red-600">Konfirmasi Reset Data</h3>
+                    <button onclick="document.getElementById('resetModal').classList.add('hidden')"
+                            class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-gray-700 mb-4">
+                        Anda akan menghapus <span class="font-bold">SEMUA DATA</span> termasuk:
+                    </p>
+                    <ul class="list-disc list-inside text-red-600 space-y-2 mb-4">
+                        <li>Semua produk</li>
+                        <li>Semua testimoni</li>
+                        <li>Semua FAQ</li>
+                        <li>Semua pengaturan</li>
+                        <li>Semua order</li>
+                    </ul>
+                    <p class="text-gray-700">
+                        Aksi ini <span class="font-bold text-red-600">TIDAK DAPAT DIBATALKAN</span>.
+                    </p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ketik <span class="font-bold text-red-600">RESET SEMUA DATA</span> untuk konfirmasi:
+                        </label>
+                        <input type="text" id="resetConfirmText"
+                               class="w-full px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                               placeholder="RESET SEMUA DATA">
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button onclick="document.getElementById('resetModal').classList.add('hidden')"
+                                class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                            Batal
+                        </button>
+                        <button onclick="adminSettings.resetAllData()"
+                                id="confirmResetBtn"
+                                disabled
+                                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Reset Semua Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase.js"></script>
+    <script src="/js/admin-auth.js"></script>
+    <script src="/js/admin-settings.js"></script>
+    
+    <script>
+        // Sidebar toggle
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // Reset confirmation text validation
+        const resetConfirmText = document.getElementById('resetConfirmText');
+        const confirmResetBtn = document.getElementById('confirmResetBtn');
+        
+        resetConfirmText.addEventListener('input', (e) => {
+            confirmResetBtn.disabled = e.target.value !== 'RESET SEMUA DATA';
+        });
+    </script>
+</body>
+</html>
