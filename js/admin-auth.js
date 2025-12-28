@@ -1,5 +1,10 @@
 class AdminAuth {
     constructor() {
+        // Ensure supabase client is loaded before proceeding
+        if (!window.supabaseClient) {
+            console.error('Supabase client not found. Pastikan js/supabase.js dimuat sebelum admin-auth.js');
+            return;
+        }
         this.supabase = window.supabaseClient;
         this.init();
     }
@@ -22,37 +27,46 @@ class AdminAuth {
     }
     
     async checkAuth() {
-        const { data: { session } } = await this.supabase.auth.getSession();
-        
-        // If on login page and already logged in, redirect to dashboard
-        if (window.location.pathname.includes('admin/index.html') && session) {
-            window.location.href = '/admin/dashboard.html';
-            return;
+        try {
+            const { data: { session } } = await this.supabase.auth.getSession();
+            
+            // If on login page and already logged in, redirect to dashboard
+            if (window.location.pathname.includes('admin/index.html') && session) {
+                window.location.href = '/admin/dashboard.html';
+                return;
+            }
+            
+            // If on admin pages and not logged in, redirect to login
+            if (window.location.pathname.includes('/admin/') && 
+                !window.location.pathname.includes('index.html') && 
+                !session) {
+                window.location.href = '/admin/index.html';
+                return;
+            }
+            
+            return session;
+        } catch (error) {
+            console.error('Error checking auth session:', error);
+            window.__utilsUI?.showMessage('error', error?.message || String(error));
+            return null;
         }
-        
-        // If on admin pages and not logged in, redirect to login
-        if (window.location.pathname.includes('/admin/') && 
-            !window.location.pathname.includes('index.html') && 
-            !session) {
-            window.location.href = '/admin/index.html';
-            return;
-        }
-        
-        return session;
     }
     
     async handleLogin(e) {
         e.preventDefault();
         
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const remember = document.getElementById('remember')?.checked || false;
-        
+        const emailEl = document.getElementById('email');
+        const passwordEl = document.getElementById('password');
+        const rememberEl = document.getElementById('remember');
         const errorDiv = document.getElementById('loginError');
         const successDiv = document.getElementById('loginSuccess');
         
-        errorDiv.classList.add('hidden');
-        successDiv.classList.add('hidden');
+        const email = emailEl?.value || '';
+        const password = passwordEl?.value || '';
+        const remember = rememberEl?.checked || false;
+        
+        if (errorDiv) errorDiv.classList.add('hidden');
+        if (successDiv) successDiv.classList.add('hidden');
         
         try {
             const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -63,8 +77,12 @@ class AdminAuth {
             if (error) throw error;
             
             // Show success message
-            successDiv.textContent = 'Login berhasil! Mengalihkan...';
-            successDiv.classList.remove('hidden');
+            if (successDiv) {
+                successDiv.textContent = 'Login berhasil! Mengalihkan...';
+                successDiv.classList.remove('hidden');
+            } else {
+                window.__utilsUI?.showMessage('success', 'Login berhasil! Mengalihkan...');
+            }
             
             // Redirect to dashboard after 1 second
             setTimeout(() => {
@@ -72,8 +90,13 @@ class AdminAuth {
             }, 1000);
             
         } catch (error) {
-            errorDiv.textContent = error.message || 'Login gagal. Periksa email dan password.';
-            errorDiv.classList.remove('hidden');
+            const msg = error?.message || String(error) || 'Login gagal. Periksa email dan password.';
+            if (errorDiv) {
+                errorDiv.textContent = msg;
+                errorDiv.classList.remove('hidden');
+            } else {
+                window.__utilsUI?.showMessage('error', msg);
+            }
         }
     }
     
@@ -85,16 +108,26 @@ class AdminAuth {
             window.location.href = '/admin/index.html';
         } catch (error) {
             console.error('Logout error:', error);
+            window.__utilsUI?.showMessage('error', error?.message || String(error));
         }
     }
     
     async getCurrentUser() {
-        const { data: { user } } = await this.supabase.auth.getUser();
-        return user;
+        try {
+            const { data: { user } } = await this.supabase.auth.getUser();
+            return user;
+        } catch (error) {
+            console.error('Error getting current user:', error);
+            return null;
+        }
     }
 }
 
 // Initialize auth when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.adminAuth = new AdminAuth();
+    try {
+        window.adminAuth = new AdminAuth();
+    } catch (err) {
+        console.error('Failed to initialize AdminAuth:', err);
+    }
 });
