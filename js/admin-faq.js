@@ -1,5 +1,10 @@
 class AdminFAQ {
     constructor() {
+        // ensure supabase client is available
+        if (!window.supabaseClient) {
+            console.error('Supabase client not found. Ensure js/supabase.js is loaded before admin-faq.js');
+            return;
+        }
         this.supabase = window.supabaseClient;
         this.currentFAQ = null;
         this.sortable = null;
@@ -26,12 +31,13 @@ class AdminFAQ {
             
         } catch (error) {
             console.error('Error loading FAQ:', error);
-            this.showMessage('error', 'Gagal memuat FAQ: ' + error.message);
+            this.showMessage('error', 'Gagal memuat FAQ: ' + (error?.message || String(error)));
         }
     }
     
     renderFAQList(faqs) {
         const container = document.getElementById('faqList');
+        if (!container) return;
         
         if (!faqs || faqs.length === 0) {
             container.innerHTML = `
@@ -54,7 +60,7 @@ class AdminFAQ {
                         </div>
                         <div class="ml-11">
                             <div class="text-gray-600 mb-4">
-                                ${faq.answer.length > 150 ? faq.answer.substring(0, 150) + '...' : faq.answer}
+                                ${faq.answer && faq.answer.length > 150 ? faq.answer.substring(0, 150) + '...' : (faq.answer || '')}
                             </div>
                             <div class="flex items-center space-x-4">
                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
@@ -64,7 +70,7 @@ class AdminFAQ {
                                     ${faq.is_active ? 'Aktif' : 'Nonaktif'}
                                 </span>
                                 <span class="text-sm text-gray-500">
-                                    Dibuat: ${new Date(faq.created_at).toLocaleDateString('id-ID')}
+                                    Dibuat: ${faq.created_at ? new Date(faq.created_at).toLocaleDateString('id-ID') : '-'}
                                 </span>
                             </div>
                         </div>
@@ -73,20 +79,20 @@ class AdminFAQ {
                         <button onclick="adminFAQ.editFAQ('${faq.id}')" 
                                 class="p-2 text-primary-600 hover:text-primary-900 rounded-lg hover:bg-primary-50">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.8 15.8"/>
                             </svg>
                         </button>
                         <button onclick="adminFAQ.toggleStatus('${faq.id}', ${!faq.is_active})"
                                 class="p-2 ${faq.is_active ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'} rounded-lg hover:bg-gray-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
                         </button>
-                        <button onclick="adminFAQ.deleteFAQ('${faq.id}', '${faq.question.substring(0, 50)}')"
+                        <button onclick="adminFAQ.deleteFAQ('${faq.id}', '${(faq.question||'').substring(0, 50).replace(/'/g, "\\'") }')"
                                 class="p-2 text-red-600 hover:text-red-900 rounded-lg hover:bg-red-50">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>
                             </svg>
                         </button>
                         <div class="w-8 h-8 flex items-center justify-center text-gray-400">
@@ -115,18 +121,21 @@ class AdminFAQ {
             ghostClass: 'sortable-ghost',
             handle: '.faq-item',
             onEnd: () => {
-                document.getElementById('saveOrderBtn').classList.remove('hidden');
+                const saveBtn = document.getElementById('saveOrderBtn');
+                if (saveBtn) saveBtn.classList.remove('hidden');
             }
         });
     }
     
     async saveOrder() {
         const saveBtn = document.getElementById('saveOrderBtn');
-        const originalText = saveBtn.textContent;
+        const originalText = saveBtn ? saveBtn.textContent : '';
         
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Menyimpan...';
-        saveBtn.classList.add('opacity-50');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Menyimpan...';
+            saveBtn.classList.add('opacity-50');
+        }
         
         try {
             const items = document.querySelectorAll('.faq-item');
@@ -151,16 +160,18 @@ class AdminFAQ {
             }
             
             this.showMessage('success', 'Urutan FAQ berhasil disimpan');
-            saveBtn.classList.add('hidden');
+            if (saveBtn) saveBtn.classList.add('hidden');
             
         } catch (error) {
             console.error('Error saving order:', error);
-            this.showMessage('error', 'Gagal menyimpan urutan: ' + error.message);
+            this.showMessage('error', 'Gagal menyimpan urutan: ' + (error?.message || String(error)));
             
         } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = originalText;
-            saveBtn.classList.remove('opacity-50');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+                saveBtn.classList.remove('opacity-50');
+            }
         }
     }
     
@@ -175,8 +186,10 @@ class AdminFAQ {
             const total = faqs.length;
             const active = faqs.filter(f => f.is_active).length;
             
-            document.getElementById('totalFaq').textContent = total;
-            document.getElementById('activeFaq').textContent = active;
+            const totalEl = document.getElementById('totalFaq');
+            const activeEl = document.getElementById('activeFaq');
+            if (totalEl) totalEl.textContent = total;
+            if (activeEl) activeEl.textContent = active;
             
         } catch (error) {
             console.error('Error updating stats:', error);
@@ -185,10 +198,12 @@ class AdminFAQ {
     
     setupEventListeners() {
         const form = document.getElementById('faqForm');
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveFAQ();
-        });
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveFAQ();
+            });
+        }
         
         const saveOrderBtn = document.getElementById('saveOrderBtn');
         if (saveOrderBtn) {
@@ -203,11 +218,13 @@ class AdminFAQ {
         const modal = document.getElementById('faqModal');
         const title = document.getElementById('modalTitle');
         
+        if (!modal) return;
+        
         if (faq) {
-            title.textContent = 'Edit FAQ';
+            if (title) title.textContent = 'Edit FAQ';
             this.fillForm(faq);
         } else {
-            title.textContent = 'Tambah FAQ Baru';
+            if (title) title.textContent = 'Tambah FAQ Baru';
             this.resetForm();
         }
         
@@ -216,40 +233,56 @@ class AdminFAQ {
     
     closeModal() {
         const modal = document.getElementById('faqModal');
-        modal.classList.add('hidden');
+        if (modal) modal.classList.add('hidden');
         this.currentFAQ = null;
         this.resetForm();
     }
     
     fillForm(faq) {
-        document.getElementById('faqId').value = faq.id;
-        document.getElementById('question').value = faq.question;
-        document.getElementById('answer').value = faq.answer;
-        document.getElementById('displayOrder').value = faq.display_order || 0;
-        document.getElementById('isActive').checked = faq.is_active;
+        const faqIdEl = document.getElementById('faqId');
+        const questionEl = document.getElementById('question');
+        const answerEl = document.getElementById('answer');
+        const displayOrderEl = document.getElementById('displayOrder');
+        const isActiveEl = document.getElementById('isActive');
+        if (faqIdEl) faqIdEl.value = faq.id || '';
+        if (questionEl) questionEl.value = faq.question || '';
+        if (answerEl) answerEl.value = faq.answer || '';
+        if (displayOrderEl) displayOrderEl.value = faq.display_order || 0;
+        if (isActiveEl) isActiveEl.checked = !!faq.is_active;
     }
     
     resetForm() {
-        document.getElementById('faqForm').reset();
-        document.getElementById('faqId').value = '';
-        document.getElementById('displayOrder').value = 0;
-        document.getElementById('isActive').checked = true;
+        const form = document.getElementById('faqForm');
+        if (form) form.reset();
+        const faqIdEl = document.getElementById('faqId');
+        const displayOrderEl = document.getElementById('displayOrder');
+        const isActiveEl = document.getElementById('isActive');
+        if (faqIdEl) faqIdEl.value = '';
+        if (displayOrderEl) displayOrderEl.value = 0;
+        if (isActiveEl) isActiveEl.checked = true;
     }
     
     async saveFAQ() {
         const saveBtn = document.getElementById('saveBtn');
-        const originalText = saveBtn.textContent;
+        const originalText = saveBtn ? saveBtn.textContent : '';
         
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Menyimpan...';
-        saveBtn.classList.add('opacity-50');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Menyimpan...';
+            saveBtn.classList.add('opacity-50');
+        }
         
         try {
+            const questionEl = document.getElementById('question');
+            const answerEl = document.getElementById('answer');
+            const displayOrderEl = document.getElementById('displayOrder');
+            const isActiveEl = document.getElementById('isActive');
+            
             const formData = {
-                question: document.getElementById('question').value.trim(),
-                answer: document.getElementById('answer').value.trim(),
-                display_order: parseInt(document.getElementById('displayOrder').value) || 0,
-                is_active: document.getElementById('isActive').checked
+                question: questionEl?.value.trim() || '',
+                answer: answerEl?.value.trim() || '',
+                display_order: parseInt(displayOrderEl?.value) || 0,
+                is_active: !!(isActiveEl && isActiveEl.checked)
             };
             
             // Validation
@@ -258,7 +291,7 @@ class AdminFAQ {
             }
             
             let result;
-            const faqId = document.getElementById('faqId').value;
+            const faqId = (document.getElementById('faqId') && document.getElementById('faqId').value) || '';
             
             if (faqId) {
                 result = await this.supabase
@@ -271,7 +304,7 @@ class AdminFAQ {
                     .insert([formData]);
             }
             
-            if (result.error) throw result.error;
+            if (result && result.error) throw result.error;
             
             this.showMessage('success', 
                 faqId ? 'FAQ berhasil diperbarui' : 'FAQ berhasil ditambahkan');
@@ -282,12 +315,14 @@ class AdminFAQ {
             
         } catch (error) {
             console.error('Error saving FAQ:', error);
-            this.showMessage('error', 'Gagal menyimpan FAQ: ' + error.message);
+            this.showMessage('error', 'Gagal menyimpan FAQ: ' + (error?.message || String(error)));
             
         } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = originalText;
-            saveBtn.classList.remove('opacity-50');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+                saveBtn.classList.remove('opacity-50');
+            }
         }
     }
     
@@ -306,7 +341,7 @@ class AdminFAQ {
             }
         } catch (error) {
             console.error('Error loading FAQ:', error);
-            this.showMessage('error', 'Gagal memuat FAQ: ' + error.message);
+            this.showMessage('error', 'Gagal memuat FAQ: ' + (error?.message || String(error)));
         }
     }
     
@@ -331,7 +366,7 @@ class AdminFAQ {
             
         } catch (error) {
             console.error('Error toggling FAQ status:', error);
-            this.showMessage('error', 'Gagal mengubah status FAQ: ' + error.message);
+            this.showMessage('error', 'Gagal mengubah status FAQ: ' + (error?.message || String(error)));
         }
     }
     
@@ -354,12 +389,29 @@ class AdminFAQ {
             
         } catch (error) {
             console.error('Error deleting FAQ:', error);
-            this.showMessage('error', 'Gagal menghapus FAQ: ' + error.message);
+            this.showMessage('error', 'Gagal menghapus FAQ: ' + (error?.message || String(error)));
         }
     }
     
     showMessage(type, text) {
-        const messageDiv = document.getElementById('message');
+        // delegate to utils UI if available
+        try {
+            if (window.__utilsUI && typeof window.__utilsUI.showMessage === 'function') {
+                window.__utilsUI.showMessage(type, text);
+                return;
+            }
+        } catch (e) {
+            console.error('utilsUI.showMessage error', e);
+        }
+        
+        // fallback: ensure message container and render
+        let messageDiv = document.getElementById('message');
+        if (!messageDiv) {
+            messageDiv = document.createElement('div');
+            messageDiv.id = 'message';
+            messageDiv.className = 'fixed top-4 right-4 z-50 max-w-sm';
+            document.body.appendChild(messageDiv);
+        }
         
         const bgColor = type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
         const textColor = type === 'success' ? 'text-green-800' : 'text-red-800';
@@ -371,21 +423,27 @@ class AdminFAQ {
                     <svg class="w-5 h-5 mr-3 ${type === 'success' ? 'text-green-400' : 'text-red-400'}" fill="currentColor" viewBox="0 0 20 20">
                         ${type === 'success' 
                             ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>'
-                            : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>'
-                        }
+                            : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>'}
                     </svg>
                     <span>${text}</span>
                 </div>
             </div>
         `;
         
-        setTimeout(() => {
-            messageDiv.innerHTML = '';
+        if (messageDiv._timeout) clearTimeout(messageDiv._timeout);
+        messageDiv._timeout = setTimeout(() => {
+            if (messageDiv) messageDiv.remove();
         }, 5000);
     }
 }
 
 // Initialize FAQ management
-document.addEventListener('DOMContentLoaded', () => {
-    window.adminFAQ = new AdminFAQ();
-});
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            window.adminFAQ = new AdminFAQ();
+        } catch (err) {
+            console.error('Failed to initialize AdminFAQ:', err);
+        }
+    });
+}
